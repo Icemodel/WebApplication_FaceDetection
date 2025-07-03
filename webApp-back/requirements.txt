@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+websockets
+opencv-python
+numpy
+psycopg2
+deepface
+dlib
+torch
