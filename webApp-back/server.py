@@ -30,7 +30,8 @@ def iou(boxA, boxB):
     iou = interArea / float(boxAArea + boxBArea - interArea + 1e-6)
     return iou
 
-async def process_frame(websocket):
+async def process_frame(websocket, path):
+    print(f"Accepted connection from: {path}")
     global last_recognized_faces
     while True:
         frame_bytes = await websocket.recv()

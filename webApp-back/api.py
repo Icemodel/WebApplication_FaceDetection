@@ -4,7 +4,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import asyncio
 
 app = FastAPI()
-server_url = "ws://127.0.0.1:9000/ws"
+server_url = "ws://127.0.0.1:9000"
 
 clients = set()  # เก็บ WebSocket ของ frontend ทุกตัว
 latest_frame = None  # เก็บ processed frame ล่าสุด
