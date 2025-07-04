@@ -4,8 +4,8 @@ import websockets
 import asyncio
 import torch
 import dlib
-from face_detection import detect_faces
-from face_recognition import recognize_face
+from services.face_detection import detect_faces
+from services.face_recognition import recognize_face
 
 print("CUDA available:", torch.cuda.is_available())
 if torch.cuda.is_available():

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-export default function CameraStream() {
+export default function MonitoringPage() {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
@@ -62,42 +62,25 @@ export default function CameraStream() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center font-sans">
-      <header className="w-full flex justify-between items-center px-6 sm:px-10 py-4 sm:py-6 bg-white shadow-sm rounded-b-xl">
-        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6">
-          <span className="text-2xl sm:text-3xl font-extrabold text-blue-700">Face Rec</span>
-          <nav className="flex gap-2 sm:gap-4">
-            <button className="px-3 sm:px-5 py-1 sm:py-2 rounded-full font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none transition duration-200 ease-in-out shadow-sm">Monitoring</button>
-            <button className="px-3 sm:px-5 py-1 sm:py-2 rounded-full font-medium text-blue-700 hover:bg-blue-100 focus:outline-none transition duration-200 ease-in-out shadow-sm">Detection</button>
-            <button className="px-3 sm:px-5 py-1 sm:py-2 rounded-full font-medium text-blue-700 hover:bg-blue-100 focus:outline-none transition duration-200 ease-in-out shadow-sm">Management</button>
-          </nav>
-        </div>
-        <button className="px-4 sm:px-6 py-1 sm:py-2 rounded-full bg-blue-600 text-white font-semibold hover:bg-blue-700 transition duration-200 ease-in-out shadow-md">Sign in</button>
-      </header>
-
-      <main className="bg-white rounded-2xl shadow-lg mt-8 sm:mt-10 p-6 sm:p-8 w-11/12 max-w-4xl border border-gray-200">
-        <div className="flex flex-col sm:flex-row items-center mb-4 gap-4">
+    <div className="flex flex-col items-center font-sans">
+      <main className="bg-green-400 rounded-2xl shadow-lg mt-8 sm:mt-10 p-6 sm:p-8 w-11/12 max-w-4xl border border-gray-200">
+        <div className="flex flex-col sm:flex-row items-center mb-4 gap-4 bg-green-700">
           <h2 className="text-xl font-semibold flex items-center text-gray-800">
-            <span className="mr-2"> 
-              <svg width="24" height="24" fill="currentColor" className="inline text-blue-600"><rect width="18" height="14" x="3" y="5" rx="2" /><circle cx="7" cy="12" r="1.5" fill="white" /></svg>
-            </span>
             Single Camera
           </h2>
           <div className="flex-1" />
-          <select className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 transition duration-200 ease-in-out w-full sm:w-auto">
-            <option>Select Floors</option>
+          <select className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 hover:bg-blue-700 hover:text-white focus:outline-none transition duration-200 ease-in-out w-full sm:w-auto">
             <option>Floor 1</option>
             <option>Floor 2</option>
             <option>Floor 3</option>
           </select>
-          <select className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 transition duration-200 ease-in-out w-full sm:w-auto sm:ml-2">
-            <option>Camera Mode</option>
-            <option>Live View</option>
-            <option>Playback</option>
+          <select className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 hover:bg-blue-700 hover:text-white focus:outline-none transition duration-200 ease-in-out w-full sm:w-auto sm:ml-2">
+            <option>Single Camera</option>
+            <option>4 Cameras</option>
+            <option>6 Cameras</option>
           </select>
         </div>
         <select className="border border-gray-300 rounded-md px-3 py-2 w-full mb-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 transition duration-200 ease-in-out">
-          <option>Select camera</option>
           <option>Camera 1 (Main Entrance)</option>
           <option>Camera 2 (Lobby)</option>
           <option>Camera 3 (Server Room)</option>
@@ -109,9 +92,9 @@ export default function CameraStream() {
             className="w-full h-auto max-w-full rounded-xl border border-gray-200 shadow-inner object-contain"
             alt="Live Stream"
             style={{ maxHeight: '400px', background: "#eee" }}
-            src="https://placehold.co/800x400/D1D5DB/4B5563?text=No+Stream+Active"
-            onError={(e) => {
-              e.currentTarget.src = "https://placehold.co/800x400/D1D5DB/4B5563?text=Error+Loading+Stream";
+            src="https://placehold.co/800x400/D1D5DB/4B5563?text=No+Streaming+Active"
+            onError={(e) => { 
+              e.currentTarget.src = "https://placehold.co/800x400/D1D5DB/4B5563?text=Waiting+for+Streaming";
             }}
           />
         </div>

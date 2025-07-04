@@ -2,9 +2,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # ตั้งค่าและเชื่อมต่อกับฐานข้อมูล SQLite
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:54375437@localhost:5432/projectDatabase"
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
 # instance class เริ่มต้นสำหรับ engine, SessionLocal และ Base
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
