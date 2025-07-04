@@ -2,7 +2,7 @@ export default function Header() {
     return (
         <header className="w-full flex justify-between items-center px-6 sm:px-10 py-4 sm:py-6 bg-white shadow-sm">
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6">
-            <span className="text-2xl sm:text-3xl font-extrabold text-blue-700">Face Rec</span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-blue-800">Face Rec</span>
             <nav className="flex gap-2 sm:gap-4">
                 <button className="px-3 sm:px-5 py-1 sm:py-2 rounded-full font-medium text-blue-700 hover:bg-blue-100 focus:outline-none transition duration-200 ease-in-out shadow-sm">Monitoring</button>
                 <button className="px-3 sm:px-5 py-1 sm:py-2 rounded-full font-medium text-blue-700 hover:bg-blue-100 focus:outline-none transition duration-200 ease-in-out shadow-sm">Detection</button>

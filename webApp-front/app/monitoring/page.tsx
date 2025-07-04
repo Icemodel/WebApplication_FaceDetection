@@ -63,8 +63,8 @@ export default function MonitoringPage() {
 
   return (
     <div className="flex flex-col items-center font-sans">
-      <main className="bg-green-400 rounded-2xl shadow-lg mt-8 sm:mt-10 p-6 sm:p-8 w-11/12 max-w-4xl border border-gray-200">
-        <div className="flex flex-col sm:flex-row items-center mb-4 gap-4 bg-green-700">
+      <main className="bg-white rounded-2xl shadow-lg mt-8 sm:mt-10 p-6 sm:p-8 w-11/12 max-w-4xl border border-gray-200">
+        <div className="flex flex-col sm:flex-row items-center mb-4 gap-4 bg-white">
           <h2 className="text-xl font-semibold flex items-center text-gray-800">
             Single Camera
           </h2>
