@@ -8,3 +8,4 @@ deepface
 dlib
 torch
 python-dotenv
+alembic

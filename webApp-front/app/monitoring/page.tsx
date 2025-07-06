@@ -1,18 +1,49 @@
 "use client";
-
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import axios from "axios";
 
 export default function MonitoringPage() {
+  //ส่วนของ WebSocket 
   const imgRef = useRef<HTMLImageElement | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
 
+  // State สำหรับ select mode
+  const [selectedMode, setSelectedMode] = useState("singlecamera");
+
+   // แปลง mode เป็นชื่อที่แสดงผล
+  let mode = "";
+  if (selectedMode === "singlecamera") {
+    mode = "Single Camera";
+  } else if (selectedMode === "4cameras") {
+    mode = "4 Cameras";
+  } else {
+    mode = "6 Cameras";
+  }
+
+  // State สำหรับ floor ที่มาจาก API
+  const [floors, setFloors] = useState<number[]>([]);
+  const [selectedFloor, setSelectedFloor] = useState<string>("");
+
+  // โหลด floor จาก API
+  useEffect(() => {
+  axios.get("/api/monitoring")
+    .then(res => {
+      setFloors(res.data);
+      if (res.data.length > 0) setSelectedFloor(res.data[0].toString());
+    })
+    .catch(err => {
+      setFloors([]);
+      // handle error ตามต้องการ
+    });
+}, []);
+
+  // การเริ่มและหยุดการ Streaming
   const startStream = () => {
     if (socketRef.current) {
       console.warn("WebSocket is already open or being opened.");
       return;
     }
-
     socketRef.current = new WebSocket("ws://127.0.0.1:3000/ws/client");
     socketRef.current.binaryType = "blob";
 
@@ -40,10 +71,8 @@ export default function MonitoringPage() {
         console.log("Received non-binary message:", event.data);
         return;
       }
-
       const blob = new Blob([event.data], { type: "image/jpeg" });
       const url = URL.createObjectURL(blob);
-
       if (imgRef.current) {
         imgRef.current.src = url;
       }
@@ -66,24 +95,44 @@ export default function MonitoringPage() {
       <main className="bg-white rounded-2xl shadow-lg mt-8 sm:mt-10 p-6 sm:p-8 w-11/12 max-w-4xl border border-gray-200">
         <div className="flex flex-col sm:flex-row items-center mb-4 gap-4 bg-white">
           <h2 className="text-xl font-semibold flex items-center text-gray-800">
-            Single Camera
+            {mode}
           </h2>
           <div className="flex-1" />
-          <select className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 hover:bg-blue-700 hover:text-white focus:outline-none transition duration-200 ease-in-out w-full sm:w-auto">
-            <option>Floor 1</option>
-            <option>Floor 2</option>
-            <option>Floor 3</option>
+
+          {/* Mode Select */}
+          <select
+            value={selectedMode}
+            onChange={e => setSelectedMode(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 hover:bg-blue-700 hover:text-white focus:outline-none transition duration-200 ease-in-out w-full sm:w-auto"
+          >
+            <option value="singlecamera">Single Camera</option>
+            <option value="4cameras">4 Cameras</option>
+            <option value="6cameras">6 Cameras</option>
           </select>
-          <select className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 hover:bg-blue-700 hover:text-white focus:outline-none transition duration-200 ease-in-out w-full sm:w-auto sm:ml-2">
-            <option>Single Camera</option>
-            <option>4 Cameras</option>
-            <option>6 Cameras</option>
+
+          {/* Floor Select (ดึงจาก API) */}
+          <select
+            value={selectedFloor}
+            onChange={e => setSelectedFloor(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 hover:bg-blue-700 hover:text-white focus:outline-none transition duration-200 ease-in-out w-full sm:w-auto"
+          >
+            {floors.length === 0 ? (
+              <option>Loading...</option>
+            ) : (
+              floors.map(floor_name => (
+                <option key={floor_name} value={floor_name}>
+                  Floor {floor_name}
+                </option>
+              ))
+            )}
           </select>
         </div>
-        <select className="border border-gray-300 rounded-md px-3 py-2 w-full mb-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 transition duration-200 ease-in-out">
-          <option>Camera 1 (Main Entrance)</option>
-          <option>Camera 2 (Lobby)</option>
-          <option>Camera 3 (Server Room)</option>
+
+        {/* Camera Select */}
+        <select className="border border-gray-300 rounded-md px-3 py-2 w-full mb-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 transition duration-200 ease-in-out" >
+          <option value="a">Camera 1 (Main Entrance)</option>
+          <option value="b">Camera 2 (Lobby)</option>
+          <option value="c">Camera 3 (Server Room)</option>
         </select>
 
         <div className="flex justify-center mb-6 bg-gray-100 rounded-2xl p-2">
@@ -93,7 +142,7 @@ export default function MonitoringPage() {
             alt="Live Stream"
             style={{ maxHeight: '400px', background: "#eee" }}
             src="https://placehold.co/800x400/D1D5DB/4B5563?text=No+Streaming+Active"
-            onError={(e) => { 
+            onError={(e) => {
               e.currentTarget.src = "https://placehold.co/800x400/D1D5DB/4B5563?text=Waiting+for+Streaming";
             }}
           />

@@ -101,7 +101,7 @@ class FaceResponse(FaceCreate):
     id: int
     class Config:
         from_attributes = True
- 
+
 
 
 
