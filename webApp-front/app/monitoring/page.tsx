@@ -24,10 +24,12 @@ export default function MonitoringPage() {
   // State สำหรับ floor ที่มาจาก API
   const [floors, setFloors] = useState<number[]>([]);
   const [selectedFloor, setSelectedFloor] = useState<string>("");
+  const [cameras, setCameras] = useState<{ id: number; camera_name: string }[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string>("");
 
-  // โหลด floor จาก API
+  // โหลดชั้นของอาคาร จาก API
   useEffect(() => {
-  axios.get("/api/monitoring")
+  axios.get("/api/monitoring/floors")
     .then(res => {
       setFloors(res.data);
       if (res.data.length > 0) setSelectedFloor(res.data[0].toString());
@@ -36,7 +38,26 @@ export default function MonitoringPage() {
       setFloors([]);
       // handle error ตามต้องการ
     });
+  axios.get("")
 }, []);
+// โหลดกล้องจาก API เมื่อเลือกชั้นของอาคารแล้ว
+  useEffect(() => {
+  if (selectedFloor) {
+    axios.get(`/api/monitoring/cameras?floor_name=${encodeURIComponent(selectedFloor)}`)
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setCameras(data);
+        if (data.length > 0) setSelectedCamera(data[0].id.toString());
+        else setSelectedCamera("");
+      })
+      .catch(() => setCameras([]));
+  } else {
+    setCameras([]);
+    setSelectedCamera("");
+  }
+}, [selectedFloor]);
+
+  
 
   // การเริ่มและหยุดการ Streaming
   const startStream = () => {
@@ -129,10 +150,20 @@ export default function MonitoringPage() {
         </div>
 
         {/* Camera Select */}
-        <select className="border border-gray-300 rounded-md px-3 py-2 w-full mb-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 transition duration-200 ease-in-out" >
-          <option value="a">Camera 1 (Main Entrance)</option>
-          <option value="b">Camera 2 (Lobby)</option>
-          <option value="c">Camera 3 (Server Room)</option>
+        <select 
+          value={selectedCamera}
+          onChange={e => setSelectedCamera(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 w-full mb-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 transition duration-200 ease-in-out"
+        >
+          {cameras.length === 0 ? (
+            <option>Cameras are not found</option>
+          ) : (
+            cameras.map(camera => (
+              <option key={camera.id} value={camera.id}>
+                Camera {camera.camera_name}
+              </option>
+            ))
+          )}
         </select>
 
         <div className="flex justify-center mb-6 bg-gray-100 rounded-2xl p-2">
