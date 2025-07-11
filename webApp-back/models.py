@@ -29,6 +29,22 @@ class PersonDB(Base):
     contact : Mapped["ContactDB"] = relationship(back_populates="person")
     floor: Mapped["FloorDB"] = relationship(back_populates="person")
 
+class UserDB(Base):
+    #Columns
+    __tablename__ = "user"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Integer, default=False, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Integer, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    person_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("person.id"), nullable=True)
+
+
+    #Relations
+    person: Mapped[Optional["PersonDB"]] = relationship(back_populates="user") 
+
 class RoleDB(Base):
     #Columns
     __tablename__ = "role"
