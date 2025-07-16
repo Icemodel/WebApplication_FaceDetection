@@ -2,23 +2,19 @@ import cv2
 import numpy as np
 import torch
 import dlib
-import sys
-import os
-import psycopg2
 from deepface import DeepFace
 from services.face_detection import detect_faces
+import concurrent.futures
+import asyncio
 
-# --- Database and Model Setup ---
-# ส่วนนี้มาจาก face_recognition.py
-try:
-    conn = psycopg2.connect(dbname="projectDatabase", user="postgres", password="54375437", host="localhost")
-    cursor = conn.cursor()
-    print("Database connection successful.")
-except Exception as e:
-    print(f"Database connection failed: {e}")
-    conn, cursor = None, None
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.future import select
+from sqlalchemy.orm import sessionmaker
+import os
+from models import FaceDB, PersonDB  # ต้องมี ORM models สำหรับ FaceDB, PersonDB
+from database import get_async_db, async_engine
 
-# --- Global State for Face Processing ---
+# ตรวจสอบการ์ดจอว่าใช้ CUDA ได้หรือไม่
 print("CUDA available:", torch.cuda.is_available())
 if torch.cuda.is_available():
     print("GPU name:", torch.cuda.get_device_name(0))
@@ -26,7 +22,6 @@ if torch.cuda.is_available():
 last_recognized_faces = {}
 tracker_id_count = 0
 
-# --- Helper Functions ---
 def get_new_face_id():
     global tracker_id_count
     tracker_id_count += 1
@@ -43,61 +38,55 @@ def iou(boxA, boxB):
     iou_val = interArea / float(boxAArea + boxBArea - interArea + 1e-6)
     return iou_val
 
-# --- Face Recognition Function (Integrated from face_recognition.py) ---
-def recognize_face(face_crop, threshold=0.6):
+async def recognize_face(face_crop, db: AsyncSession, threshold=0.6):
     """
     ฟังก์ชันนี้จะแปลงภาพใบหน้าที่ตัดมาเป็น vector,
-    ค้นหาในฐานข้อมูล, และคืนค่าชื่อกับ embedding vector.
+    ค้นหาในฐานข้อมูลด้วย SQLAlchemy ORM, และคืนค่าชื่อกับ embedding vector.
     """
-    if not conn or not cursor:
-        print("[recognize_face] No database connection.")
-        return "DB Error", None
-
     try:
         embedding_vector = DeepFace.represent(face_crop, model_name="Facenet", enforce_detection=False)
         if isinstance(embedding_vector, list) and len(embedding_vector) > 0:
             embedding_vector = embedding_vector[0]
-        
         embedding_vector = np.array(embedding_vector["embedding"], dtype=np.float32)
-        embedding_str = "[" + ",".join([str(x) for x in embedding_vector.tolist()]) + "]"
 
-        # Query vector ที่ใกล้สุด
-        query = """
-            SELECT faces.id, faces.person_id, person.name, faces.embedding
-            FROM faces
-            JOIN person ON faces.person_id = person.id
-            ORDER BY faces.embedding <-> %s::vector
-            LIMIT 1;
-        """
-        cursor.execute(query, (embedding_str,))
-        result = cursor.fetchone()
-        conn.commit()
+        # ดึง face ทั้งหมดในฐานข้อมูล (หรือปรับ query ให้เหมาะสมกับการใช้งานจริง)
+        result = await db.execute(
+            select(FaceDB, PersonDB)
+            .join(PersonDB, FaceDB.person_id == PersonDB.id)
+        )
+        faces = result.all()
 
-        print("[recognize_face] DB result:", result)
-        if result:
-            db_embedding = np.array(eval(result[3]), dtype=np.float32)
+        # หา face ที่คล้ายที่สุด
+        best_similarity = -1
+        best_name = "Unknown"
+        for face, person in faces:
+            db_embedding = np.array(face.embedding, dtype=np.float32)
             similarity = np.dot(embedding_vector, db_embedding) / (np.linalg.norm(embedding_vector) * np.linalg.norm(db_embedding))
-            print(f"[recognize_face] similarity: {similarity:.3f}")
-            if similarity > threshold:
-                return result[2], embedding_vector
-            else:
-                return "Unknown", embedding_vector
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_name = person.name
+
+        if best_similarity > threshold:
+            return best_name, embedding_vector
         else:
             return "Unknown", embedding_vector
-            
+
     except Exception as e:
-        print(f"[recognize_face] Recognition error: {e}")
-        conn.rollback()
+        print(f"[recognize_face_orm] Recognition error: {e}")
         return "Error", None
 
-# --- Main Frame Processing Logic ---
-async def process_frame_logic(frame_bytes: bytes) -> bytes:
-    """
-    ฟังก์ชันหลักในการประมวลผลใบหน้าในแต่ละเฟรม
-    """
-    global last_recognized_faces
+DETECT_INTERVAL = 5  # ตรวจจับใบหน้าใหม่ทุก x เฟรม
+frame_counter = 0
+
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+
+async def process_frame(frame_bytes: bytes, db: AsyncSession) -> bytes:
+    global last_recognized_faces, frame_counter
     frame_array = np.frombuffer(frame_bytes, dtype=np.uint8)
     frame = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
+    frame_counter += 1
+
+    loop = asyncio.get_running_loop()
 
     # 1. Update trackers
     to_remove = []
@@ -111,24 +100,41 @@ async def process_frame_logic(frame_bytes: bytes) -> bytes:
     for fid in to_remove:
         del last_recognized_faces[fid]
 
-    # 2. Detect new faces
-    detected_faces = detect_faces(frame)
-    for (x1, y1, x2, y2) in detected_faces:
-        if not any(iou((x1, y1, x2, y2), data['bbox']) > 0.5 for data in last_recognized_faces.values()):
+    # 2. ตรวจจับใบหน้าใหม่ (ตามที่กำหนด DETECT_INTERVAL เอาไว้)
+    if frame_counter % DETECT_INTERVAL == 0:
+        detected_faces = await loop.run_in_executor(executor, detect_faces, frame)
+        for (x1, y1, x2, y2) in detected_faces:
+            is_duplicate = False
+            for data in last_recognized_faces.values():
+                iou_val = iou((x1, y1, x2, y2), data['bbox'])
+                if iou_val > 0.3:
+                    is_duplicate = True
+                    break
+            if is_duplicate:
+                continue
+
             face_crop = frame[y1:y2, x1:x2]
-            
-            # เรียกใช้ฟังก์ชัน recognize_face ที่อยู่ในไฟล์เดียวกันนี้
-            name, embedding = recognize_face(face_crop)
-            
-            if embedding is not None: # เพิ่มการตรวจสอบว่าการ recognition สำเร็จหรือไม่
+            try:
+                face_crop = cv2.resize(face_crop, (160, 160))
+            except Exception:
+                continue
+            name, embedding = await recognize_face(face_crop, db)
+            if embedding is not None:
                 tracker = dlib.correlation_tracker()
                 tracker.start_track(frame, dlib.rectangle(x1, y1, x2, y2))
                 face_id = get_new_face_id()
-                last_recognized_faces[face_id] = {'name': name, 'embedding': embedding, 'tracker': tracker, 'bbox': (x1, y1, x2, y2)}
+                last_recognized_faces[face_id] = {
+                    'name': name,
+                    'embedding': embedding,
+                    'tracker': tracker,
+                    'bbox': (x1, y1, x2, y2)
+                }
 
     # 3. Draw results
-    for data in last_recognized_faces.values():
+    print(f"[DEBUG] frame_counter={frame_counter} | trackers={len(last_recognized_faces)}")
+    for face_id, data in last_recognized_faces.items():
         x1, y1, x2, y2 = data['bbox']
+        print(f"[DEBUG] Drawing box for face_id={face_id} at ({x1},{y1},{x2},{y2}) name={data['name']}")
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cv2.putText(frame, str(data['name']), (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 

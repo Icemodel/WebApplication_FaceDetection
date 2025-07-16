@@ -9,3 +9,4 @@ dlib
 torch
 python-dotenv
 alembic
+pyjwt

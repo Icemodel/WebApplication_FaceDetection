@@ -1,40 +1,36 @@
-from fastapi import APIRouter, Query
-import asyncpg
-import os
+from fastapi import APIRouter, Query, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from database import get_async_db
+from models import FloorDB, CameraDB, FloorCameraDB
 
 router = APIRouter()
-DATABASE_URL = os.getenv("DATABASE_URL")
 
 @router.get("/floors/")
-async def get_floors():
+async def get_floors(db: AsyncSession = Depends(get_async_db)):
     try:
-        print("DATABASE_URL:", DATABASE_URL)
-        conn = await asyncpg.connect(DATABASE_URL)
-        rows = await conn.fetch('SELECT floor_name FROM floor ORDER BY floor_name;')
-        print("rows from db:", rows)
-        await conn.close()
-        return [row["floor_name"] for row in rows]
+        result = await db.execute(select(FloorDB).order_by(FloorDB.floor_name))
+        floors = result.scalars().all()
+        return [floor.floor_name for floor in floors]
     except Exception as e:
-        print(f"Database connection error: {e}")
+        print(f"Database error: {e}")
         return []
-    
+
 @router.get("/cameras/")
-async def get_cameras_by_floor(floor_name: str = Query(...)):
+async def get_cameras_by_floor(floor_name: str = Query(...), db: AsyncSession = Depends(get_async_db)):
     try:
-        conn = await asyncpg.connect(DATABASE_URL)
-        floor_row = await conn.fetchrow('SELECT id FROM floor WHERE floor_name = $1', floor_name)
-        if not floor_row:
-            await conn.close()
+        result = await db.execute(select(FloorDB).where(FloorDB.floor_name == floor_name))
+        floor = result.scalar_one_or_none()
+        if not floor:
             return []
-        floor_id = floor_row['id']
-        rows = await conn.fetch('''
-            SELECT camera.id, camera.camera_name FROM camera
-            JOIN floor_camera ON camera.id = floor_camera.camera_id
-            WHERE floor_camera.floor_id = $1
-            ORDER BY camera.camera_name                    
-        ''', floor_id)
-        await conn.close()
-        return [{"id": row["id"], "camera_name": row["camera_name"]} for row in rows]
+        result = await db.execute(
+            select(CameraDB)
+            .join(FloorCameraDB, CameraDB.id == FloorCameraDB.camera_id)
+            .where(FloorCameraDB.floor_id == floor.id)
+            .order_by(CameraDB.camera_name)
+        )
+        cameras = result.scalars().all()
+        return [{"id": cam.id, "camera_name": cam.camera_name} for cam in cameras]
     except Exception as e:
-        print(f"Database connection error: {e}")
+        print(f"Database error: {e}")
         return []

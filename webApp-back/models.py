@@ -1,6 +1,7 @@
 from sqlalchemy import Integer, String, ForeignKey, CheckConstraint, DateTime, Interval
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import datetime, timedelta
+from pgvector.sqlalchemy import Vector
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from base import Base
 
@@ -27,20 +28,22 @@ class PersonDB(Base):
     faculty: Mapped["FacultyDB"] = relationship(back_populates="person")
     department: Mapped["DepartmentDB"] = relationship(back_populates="person")
     contact : Mapped["ContactDB"] = relationship(back_populates="person")
-    floor: Mapped["FloorDB"] = relationship(back_populates="person")
+    floor_person: Mapped["FloorPersonDB"] = relationship(back_populates="person")
+    user: Mapped[List["UserDB"]] = relationship(back_populates="person")
+    faces: Mapped[List["FaceDB"]] = relationship(back_populates="person")  
 
 class UserDB(Base):
     #Columns
     __tablename__ = "user"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_verified: Mapped[bool] = mapped_column(Integer, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Integer, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     person_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("person.id"), nullable=True)
-
 
     #Relations
     person: Mapped[Optional["PersonDB"]] = relationship(back_populates="user") 
@@ -92,6 +95,7 @@ class FloorDB(Base):
 
     #Relations
     floor_camera: Mapped[List["FloorCameraDB"]] = relationship(back_populates="floor")
+    floor_person: Mapped[List["FloorPersonDB"]] = relationship(back_populates="floor")
 
 class CameraDB(Base):
     __tablename__ = "camera"
@@ -133,7 +137,7 @@ class FaceDB(Base):
     #Columns
     id: Mapped[int] = mapped_column(Integer, primary_key = True)
     person_id: Mapped[int] = mapped_column(Integer,ForeignKey("person.id"))
-    embedding: Mapped[List[float]] = mapped_column(String, nullable=False)  
+    embedding: Mapped[List[float]] = mapped_column(Vector(128), nullable=False)  
 
     #Relations
     person: Mapped["PersonDB"] = relationship(back_populates="faces")
