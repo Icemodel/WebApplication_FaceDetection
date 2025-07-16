@@ -1,6 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import asyncio
-from services.face_recognition import process_frame_logic
 
 router = APIRouter()
 
@@ -34,12 +33,14 @@ async def camera_ws(websocket: WebSocket):
     print("Camera connected")
     try:
         while True:
-            frame_bytes = await websocket.receive_bytes()
-            processed_frame = await process_frame_logic(frame_bytes)
+            # รับ processed frame จาก face_rec_server.py
+            processed_frame = await websocket.receive_bytes()
             latest_frame = processed_frame
-            
-            await websocket.send_bytes(processed_frame) # ส่งกลับให้กล้อง (ถ้าต้องการ)
-            
+
+            # ส่งกลับให้กล้อง (ถ้าต้องการ)
+            await websocket.send_bytes(processed_frame)
+
+            # broadcast ไปยัง frontend clients
             if clients:
                 await asyncio.gather(
                     *(client.send_bytes(processed_frame) for client in clients),

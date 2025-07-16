@@ -15,7 +15,7 @@ export default function CameraDisplay({ classname = "" }) {
 
   // โหลดชั้นของอาคาร จาก API
   useEffect(() => {
-  axios.get("/api/monitoring/floors")
+  axios.get("/api/monitoring/floors", { withCredentials: true })
     .then(res => {
       setFloors(res.data);
       if (res.data.length > 0) setSelectedFloor(res.data[0].toString());
@@ -24,12 +24,12 @@ export default function CameraDisplay({ classname = "" }) {
       setFloors([]);
       // handle error ตามต้องการ
     });
-  axios.get("")
 }, []);
+
 // โหลดกล้องจาก API เมื่อเลือกชั้นของอาคารแล้ว
   useEffect(() => {
   if (selectedFloor) {
-    axios.get(`/api/monitoring/cameras?floor_name=${encodeURIComponent(selectedFloor)}`)
+    axios.get(`/api/monitoring/cameras?floor_name=${encodeURIComponent(selectedFloor)}`, { withCredentials: true })
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : [];
         setCameras(data);
@@ -49,7 +49,7 @@ export default function CameraDisplay({ classname = "" }) {
       console.warn("WebSocket is already open or being opened.");
       return;
     }
-    socketRef.current = new WebSocket("ws://127.0.0.1:3000/ws/client");
+    socketRef.current = new WebSocket("ws://127.0.0.1:3002/ws/client");
     socketRef.current.binaryType = "blob";
 
     socketRef.current.onopen = () => {
@@ -104,14 +104,14 @@ export default function CameraDisplay({ classname = "" }) {
             onChange={e => setSelectedFloor(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 hover:bg-blue-700 hover:text-white focus:outline-none transition duration-200 ease-in-out w-full sm:w-auto"
           >
-            {floors.length === 0 ? (
-              <option>Loading...</option>
-            ) : (
+            {Array.isArray(floors) && floors.length > 0 ? (
               floors.map(floor_name => (
                 <option key={floor_name} value={floor_name}>
                   Floor {floor_name}
                 </option>
               ))
+            ) : (
+              <option>Loading...</option>
             )}
           </select>
         </div>
