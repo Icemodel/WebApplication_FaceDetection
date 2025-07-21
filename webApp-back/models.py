@@ -42,9 +42,10 @@ class UserDB(Base):
     is_verified: Mapped[bool] = mapped_column(Integer, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Integer, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login_at: Mapped[Optional[datetime | None]] = mapped_column(DateTime(timezone=True), nullable=True)
     person_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("person.id"), nullable=True)
-
+    picture: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
     #Relations
     person: Mapped[Optional["PersonDB"]] = relationship(back_populates="user") 
 
@@ -125,8 +126,8 @@ class FloorPersonDB(Base):
     floor_id: Mapped[int] = mapped_column(Integer, ForeignKey("floor.id"))
     person_id: Mapped[int] = mapped_column(Integer, ForeignKey("person.id"))
     entered_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    exited_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    duration: Mapped[timedelta | None] = mapped_column(Interval, nullable=True)
+    exited_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    duration: Mapped[Optional[timedelta]] = mapped_column(Interval, nullable=True)
 
     #Relations
     floor: Mapped["FloorDB"] = relationship(back_populates="floor_person")

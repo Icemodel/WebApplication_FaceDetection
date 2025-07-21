@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const res = await fetch(
-      `http://127.0.0.1:3001/cameras/?floor_name=${encodeURIComponent(floor_name)}`,
+      `http://127.0.0.1:3001/api/cameras/?floor_name=${encodeURIComponent(floor_name)}`,
       {
         headers: { cookie },
         cache: "no-store"

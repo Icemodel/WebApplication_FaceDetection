@@ -10,14 +10,16 @@ ALGORITHM = "HS256"
 EXCLUDE_PATHS = ["/sign-in", "/sign-up", "/docs", "/openapi.json", "/api/signin",]
 
 async def login_required_middleware(request: Request, call_next):
+    if request.method == "OPTIONS":
+        return await call_next(request)
     if request.url.path in EXCLUDE_PATHS:
         return await call_next(request)
     token = request.cookies.get("jwt_token") or request.headers.get("Authorization")
-    print("Token from request.cookies.get('jwt_token'):", request.cookies.get("jwt_token"))  # เพิ่ม log ตรงนี้
-    print("Token from request.headers.get('Authorization'):", request.headers.get("Authorization"))  # เพิ่ม log ตรงนี้
-    print("Token used for validation:", token)  # log token ที่จะใช้ validate
     if not token or not validate_token(token):
-        return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
+        response = JSONResponse(status_code=401, content={"detail": "Not authenticated"})
+        response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
     return await call_next(request)
 
 def validate_token(token: str) -> bool:

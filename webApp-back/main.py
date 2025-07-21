@@ -5,7 +5,7 @@ from api.middleware import login_required_middleware
 from dotenv import load_dotenv
 
 # Import routers from the api folder
-from api import monitoring, camera, signin
+from api import monitoring, camera, signin, user
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,6 +27,7 @@ app.middleware("http")(login_required_middleware)
 app.include_router(monitoring.router, tags=["Monitoring"])
 app.include_router(camera.router, tags=["Camera & WebSocket"])
 app.include_router(signin.router, tags=["Sign In"])
+app.include_router(user.router, tags=["User Management"])
 
 @app.get("/")
 def root():

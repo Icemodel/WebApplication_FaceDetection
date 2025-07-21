@@ -1,8 +1,19 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import axios from "axios";
+import { useUserPicture } from "../Context/userPictureContext";
 
 export default function Header() {
     const router = useRouter();
+
+    const { profilePicture, setProfilePicture } = useUserPicture();
+
+    useEffect(() => {
+        axios.get("http://localhost:3001/api/user/profileIcon", { withCredentials: true })
+        .then(res => setProfilePicture(res.data.profile_icon))
+        .catch(() => setProfilePicture(null));
+    }, []);
 
     return (
         <header className="w-full flex justify-between items-center px-6 sm:px-10 py-4 sm:py-6 bg-white shadow-sm">
@@ -35,12 +46,16 @@ export default function Header() {
                     </button>
                 </nav>
             </div>
-            <button 
-              className="px-4 sm:px-6 py-1 sm:py-2 rounded-full bg-blue-600 text-white font-semibold hover:bg-blue-700 transition duration-200 ease-in-out shadow-md cursor-pointer"
-              onClick={() => router.push("/sign-in/")}
-            >
-              Sign in
-            </button>
+            {profilePicture && (
+                <button 
+                    className={`w-14 h-14 rounded-full font-semibold shadow-md cursor-pointer`}
+                >
+                    <img src={`/profile/${profilePicture}.jpg`} 
+                         alt="profile" 
+                         className="w-14 h-14 rounded-full object-cover"
+                    />
+                </button>
+                )}
         </header>
     );
 };

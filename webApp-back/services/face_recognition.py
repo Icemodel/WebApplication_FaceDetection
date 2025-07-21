@@ -6,13 +6,10 @@ from deepface import DeepFace
 from services.face_detection import detect_faces
 import concurrent.futures
 import asyncio
-
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import sessionmaker
-import os
-from models import FaceDB, PersonDB  # ต้องมี ORM models สำหรับ FaceDB, PersonDB
-from database import get_async_db, async_engine
+from models import FaceDB, PersonDB  
+ 
 
 # ตรวจสอบการ์ดจอว่าใช้ CUDA ได้หรือไม่
 print("CUDA available:", torch.cuda.is_available())

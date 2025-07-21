@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-
+import { useUserPicture } from "../Context/userPictureContext";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -11,9 +11,11 @@ export default function SignInPage() {
   const [passwordError, setPasswordError] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [formError, setFormError] = useState("");
+  const { setProfilePicture } = useUserPicture();
 
   const handleSignIn = async () => {
     let valid = true;
+
     if (!username) {
         setUsernameError("Please enter your username.");
         valid = false;
@@ -29,8 +31,11 @@ export default function SignInPage() {
     if (!valid) return;
 
     try {
-      const res = await axios.post("/api/signin", { username, password }, { withCredentials: true });
+      await axios.post("/api/user/signIn", { username, password }, { withCredentials: true });
+      const res = await axios.get("/api/user/profileIcon", { withCredentials: true });
+      setProfilePicture(res.data.profile_icon);
       router.push("/monitoring");
+      router.refresh();
     } catch (err: any) {
       if (err.response && err.response.data && err.response.data.detail) {
         setFormError(err.response.data.detail);

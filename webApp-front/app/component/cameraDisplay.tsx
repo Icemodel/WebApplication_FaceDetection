@@ -15,7 +15,7 @@ export default function CameraDisplay({ classname = "" }) {
 
   // โหลดชั้นของอาคาร จาก API
   useEffect(() => {
-  axios.get("/api/monitoring/floors", { withCredentials: true })
+  axios.get("/api/monitoring/floors/", { withCredentials: true })
     .then(res => {
       setFloors(res.data);
       if (res.data.length > 0) setSelectedFloor(res.data[0].toString());
@@ -29,7 +29,7 @@ export default function CameraDisplay({ classname = "" }) {
 // โหลดกล้องจาก API เมื่อเลือกชั้นของอาคารแล้ว
   useEffect(() => {
   if (selectedFloor) {
-    axios.get(`/api/monitoring/cameras?floor_name=${encodeURIComponent(selectedFloor)}`, { withCredentials: true })
+    axios.get(`/api/monitoring/cameras/?floor_name=${encodeURIComponent(selectedFloor)}`, { withCredentials: true })
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : [];
         setCameras(data);

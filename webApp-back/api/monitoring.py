@@ -6,7 +6,7 @@ from models import FloorDB, CameraDB, FloorCameraDB
 
 router = APIRouter()
 
-@router.get("/floors/")
+@router.get("/api/floors/")
 async def get_floors(db: AsyncSession = Depends(get_async_db)):
     try:
         result = await db.execute(select(FloorDB).order_by(FloorDB.floor_name))
@@ -16,7 +16,7 @@ async def get_floors(db: AsyncSession = Depends(get_async_db)):
         print(f"Database error: {e}")
         return []
 
-@router.get("/cameras/")
+@router.get("/api/cameras/")
 async def get_cameras_by_floor(floor_name: str = Query(...), db: AsyncSession = Depends(get_async_db)):
     try:
         result = await db.execute(select(FloorDB).where(FloorDB.floor_name == floor_name))
